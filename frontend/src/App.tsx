@@ -1,35 +1,118 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from '/vite.svg'
-import './App.css'
+import { MouseEventHandler, useRef } from "react";
+import "./App.css";
+type Coord = { x: number; y: number };
 
 function App() {
-  const [count, setCount] = useState(0)
+  const ref = useRef<HTMLCanvasElement>(null!);
+  const lastRef = useRef<Coord>({ x: NaN, y: NaN });
+
+  const onMouseDown: MouseEventHandler<HTMLCanvasElement> = (e) => {
+    if (!isLeftMouseButtonDown(e.buttons)) return;
+    const canvasRect = ref.current.getBoundingClientRect();
+    lastRef.current = {
+      x: e.pageX - canvasRect.left,
+      y: e.pageY - canvasRect.top,
+    };
+  };
+
+  const onMouseMove: MouseEventHandler<HTMLCanvasElement> = (e) => {
+    if (!isLeftMouseButtonDown(e.buttons)) return;
+
+    const from = lastRef.current;
+    if (!from) return;
+
+    const canvasRect = ref.current.getBoundingClientRect();
+    const to = {
+      x: e.pageX - canvasRect.left,
+      y: e.pageY - canvasRect.top,
+    };
+    paint({
+      element: ref.current,
+      from,
+      to,
+    });
+    lastRef.current = to;
+  };
+
+  const onMouseEnter: MouseEventHandler<HTMLCanvasElement> = (e) => {
+    if (!isLeftMouseButtonDown(e.buttons)) return;
+    const canvasRect = ref.current.getBoundingClientRect();
+
+    lastRef.current = {
+      x: e.pageX - canvasRect.left,
+      y: e.pageY - canvasRect.top,
+    };
+  };
 
   return (
     <>
-      <div>
-        <a href="https://vite.dev" target="_blank">
-          <img src={viteLogo} className="logo" alt="Vite logo" />
-        </a>
-        <a href="https://react.dev" target="_blank">
-          <img src={reactLogo} className="logo react" alt="React logo" />
-        </a>
-      </div>
-      <h1>Vite + React</h1>
-      <div className="card">
-        <button onClick={() => setCount((count) => count + 1)}>
-          count is {count}
-        </button>
-        <p>
-          Edit <code>src/App.tsx</code> and save to test HMR
-        </p>
-      </div>
-      <p className="read-the-docs">
-        Click on the Vite and React logos to learn more
-      </p>
+      <canvas
+        onMouseDown={onMouseDown}
+        onMouseMove={onMouseMove}
+        onMouseEnter={onMouseEnter}
+        ref={ref}
+        style={{ background: "white" }}
+      />
     </>
-  )
+  );
 }
 
-export default App
+function isLeftMouseButtonDown(buttons: number) {
+  return buttons % 2 === 1;
+}
+
+function paint({
+  element,
+  from,
+  to,
+  strokeStyle = "#000",
+  lineWidth = 5,
+}: {
+  element: HTMLCanvasElement;
+  from: { x: number; y: number };
+  to: { x: number; y: number };
+  lineWidth?: number;
+  strokeStyle?: string;
+}) {
+  const ctx = element.getContext("2d");
+
+  if (!ctx) return;
+
+  ctx.beginPath();
+  ctx.strokeStyle = strokeStyle;
+  ctx.lineWidth = lineWidth;
+  ctx.lineJoin = "round";
+  ctx.moveTo(from.x, from.y);
+  ctx.lineTo(to.x, to.y);
+  ctx.closePath();
+  ctx.stroke();
+}
+
+// function createRingBuffer<T>(length: number) {
+//   const ringBuffer = Array<T>(length);
+
+//   const getLast = () => ringBuffer.at(-1);
+//   const getFirst = () => ringBuffer.at(0);
+//   const getNth = (n: number) => ringBuffer.at(n);
+
+//   const push = (item: T) => {
+//     ringBuffer.splice(0, 1);
+//     ringBuffer.push(item);
+//   };
+
+//   return { ringBuffer, getLast, getFirst, getNth, push };
+// }
+
+// function useGlobalMousePositionLog() {
+//   useEffect(() => {
+//     const log = (e: MouseEvent) => {
+//       console.log("Global: ", { x: e.pageX, y: e.pageY });
+//     };
+//     window.addEventListener("mousedown", log, false);
+//     return () => {
+//       window.removeEventListener("mousedown", log, false);
+//     };
+//   }, []);
+// }
+
+export default App;
