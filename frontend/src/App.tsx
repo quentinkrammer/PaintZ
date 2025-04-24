@@ -1,4 +1,5 @@
 import {
+  MouseEvent,
   MouseEventHandler,
   RefObject,
   useEffect,
@@ -7,31 +8,35 @@ import {
 } from "react";
 type Coord = { x: number; y: number };
 
+const CANVAS_INTERNAL_WIDTH = 800;
+const CANVAS_INTERNAL_HEIGHT = 600;
+
 function App() {
   const canvasRef = useRef<HTMLCanvasElement>(null!);
   const containerRef = useRef<HTMLDivElement>(null!);
   const lastRef = useRef<Coord>({ x: NaN, y: NaN });
-  const viewportDimensions = useContainerDimensions(containerRef);
+  const containerDimensions = useContainerDimensions(containerRef);
+  const scalling = getCanvasScalling(containerDimensions, 0.9);
 
   const onMouseDown: MouseEventHandler<HTMLCanvasElement> = (e) => {
-    if (!isLeftMouseButtonDown(e.buttons)) return;
+    if (!isLeftMouseButtonDown(e)) return;
     const canvasRect = canvasRef.current.getBoundingClientRect();
     lastRef.current = {
-      x: e.pageX - canvasRect.left,
-      y: e.pageY - canvasRect.top,
+      x: (e.clientX - canvasRect.left) / scalling,
+      y: (e.clientY - canvasRect.top) / scalling,
     };
   };
 
   const onMouseMove: MouseEventHandler<HTMLCanvasElement> = (e) => {
-    if (!isLeftMouseButtonDown(e.buttons)) return;
+    if (!isLeftMouseButtonDown(e)) return;
 
     const from = lastRef.current;
     if (!from) return;
 
     const canvasRect = canvasRef.current.getBoundingClientRect();
     const to = {
-      x: e.pageX - canvasRect.left,
-      y: e.pageY - canvasRect.top,
+      x: (e.clientX - canvasRect.left) / scalling,
+      y: (e.clientY - canvasRect.top) / scalling,
     };
     paint({
       element: canvasRef.current,
@@ -42,30 +47,58 @@ function App() {
   };
 
   const onMouseEnter: MouseEventHandler<HTMLCanvasElement> = (e) => {
-    if (!isLeftMouseButtonDown(e.buttons)) return;
+    if (!isLeftMouseButtonDown(e)) return;
     const canvasRect = canvasRef.current.getBoundingClientRect();
 
     lastRef.current = {
-      x: e.pageX - canvasRect.left,
-      y: e.pageY - canvasRect.top,
+      x: (e.clientX - canvasRect.left) / scalling,
+      y: (e.clientY - canvasRect.top) / scalling,
     };
   };
 
   return (
     <>
-      <div style={{ width: "90dvw", height: "90dvh" }} ref={containerRef}>
+      <div
+        style={{
+          width: "100dvw",
+          height: "100dvh",
+          background: "mediumpurple",
+          display: "grid",
+          placeItems: "center",
+        }}
+        ref={containerRef}
+      >
         <canvas
-          height={viewportDimensions?.y}
-          width={viewportDimensions?.x}
+          height={CANVAS_INTERNAL_HEIGHT}
+          width={CANVAS_INTERNAL_WIDTH}
           onMouseDown={onMouseDown}
           onMouseMove={onMouseMove}
           onMouseEnter={onMouseEnter}
           ref={canvasRef}
-          style={{ background: "skyblue" }}
+          style={{
+            background: "skyblue",
+            width: `${CANVAS_INTERNAL_WIDTH * scalling}px`,
+            height: `${CANVAS_INTERNAL_HEIGHT * scalling}px`,
+            display: "block",
+          }}
         />
       </div>
     </>
   );
+}
+
+function getCanvasScalling(
+  containerDimensions: Coord | undefined,
+  canvasContainerSizeRatio = 1
+) {
+  if (!containerDimensions) return 1;
+
+  const xScalling =
+    (containerDimensions.x * canvasContainerSizeRatio) / CANVAS_INTERNAL_WIDTH;
+  const yScalling =
+    (containerDimensions.y * canvasContainerSizeRatio) / CANVAS_INTERNAL_HEIGHT;
+
+  return xScalling < yScalling ? xScalling : yScalling;
 }
 
 function useContainerDimensions(containerRef: RefObject<HTMLElement>) {
@@ -96,14 +129,14 @@ function useContainerDimensions(containerRef: RefObject<HTMLElement>) {
   return dimensions;
 }
 
-function isLeftMouseButtonDown(buttons: number) {
-  return buttons % 2 === 1;
+function isLeftMouseButtonDown(e: MouseEvent) {
+  return e.buttons % 2 === 1;
 }
 
 function paint({
   element,
-  from,
-  to,
+  from, // internal cavas coordinates
+  to, // internal canvas coordinates
   strokeStyle = "#000",
   lineWidth = 5,
 }: {
