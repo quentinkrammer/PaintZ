@@ -1,14 +1,21 @@
-import { MouseEventHandler, useRef } from "react";
-import "./App.css";
+import {
+  MouseEventHandler,
+  RefObject,
+  useEffect,
+  useRef,
+  useState,
+} from "react";
 type Coord = { x: number; y: number };
 
 function App() {
-  const ref = useRef<HTMLCanvasElement>(null!);
+  const canvasRef = useRef<HTMLCanvasElement>(null!);
+  const containerRef = useRef<HTMLDivElement>(null!);
   const lastRef = useRef<Coord>({ x: NaN, y: NaN });
+  const viewportDimensions = useContainerDimensions(containerRef);
 
   const onMouseDown: MouseEventHandler<HTMLCanvasElement> = (e) => {
     if (!isLeftMouseButtonDown(e.buttons)) return;
-    const canvasRect = ref.current.getBoundingClientRect();
+    const canvasRect = canvasRef.current.getBoundingClientRect();
     lastRef.current = {
       x: e.pageX - canvasRect.left,
       y: e.pageY - canvasRect.top,
@@ -21,13 +28,13 @@ function App() {
     const from = lastRef.current;
     if (!from) return;
 
-    const canvasRect = ref.current.getBoundingClientRect();
+    const canvasRect = canvasRef.current.getBoundingClientRect();
     const to = {
       x: e.pageX - canvasRect.left,
       y: e.pageY - canvasRect.top,
     };
     paint({
-      element: ref.current,
+      element: canvasRef.current,
       from,
       to,
     });
@@ -36,7 +43,7 @@ function App() {
 
   const onMouseEnter: MouseEventHandler<HTMLCanvasElement> = (e) => {
     if (!isLeftMouseButtonDown(e.buttons)) return;
-    const canvasRect = ref.current.getBoundingClientRect();
+    const canvasRect = canvasRef.current.getBoundingClientRect();
 
     lastRef.current = {
       x: e.pageX - canvasRect.left,
@@ -46,15 +53,47 @@ function App() {
 
   return (
     <>
-      <canvas
-        onMouseDown={onMouseDown}
-        onMouseMove={onMouseMove}
-        onMouseEnter={onMouseEnter}
-        ref={ref}
-        style={{ background: "white" }}
-      />
+      <div style={{ width: "90dvw", height: "90dvh" }} ref={containerRef}>
+        <canvas
+          height={viewportDimensions?.y}
+          width={viewportDimensions?.x}
+          onMouseDown={onMouseDown}
+          onMouseMove={onMouseMove}
+          onMouseEnter={onMouseEnter}
+          ref={canvasRef}
+          style={{ background: "skyblue" }}
+        />
+      </div>
     </>
   );
+}
+
+function useContainerDimensions(containerRef: RefObject<HTMLElement>) {
+  const [dimensions, setDimensions] = useState<Coord>();
+
+  useEffect(() => {
+    const containerElement = containerRef.current;
+
+    const resizeObserver = new ResizeObserver((entries) => {
+      const target = entries[0]?.target;
+      if (!target) {
+        setDimensions(undefined);
+        return;
+      }
+      setDimensions({
+        x: target.clientWidth,
+        y: target.clientHeight,
+      });
+    });
+    resizeObserver.observe(containerElement);
+
+    return () => {
+      if (containerElement) resizeObserver.unobserve(containerElement);
+      else resizeObserver.disconnect();
+    };
+  }, [containerRef]);
+
+  return dimensions;
 }
 
 function isLeftMouseButtonDown(buttons: number) {
