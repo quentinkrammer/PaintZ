@@ -66,8 +66,8 @@ function App() {
         ref={canvasRef}
         style={{
           background: "skyblue",
-          width: `90dvw`,
-          aspectRatio: "8 / 6",
+          width: `100dvw`,
+          aspectRatio: `${CANVAS_INTERNAL_WIDTH / CANVAS_INTERNAL_HEIGHT}`,
           display: "block",
         }}
       />
