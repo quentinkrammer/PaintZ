@@ -13,10 +13,9 @@ const CANVAS_INTERNAL_HEIGHT = 600;
 
 function App() {
   const canvasRef = useRef<HTMLCanvasElement>(null!);
-  const containerRef = useRef<HTMLDivElement>(null!);
   const lastRef = useRef<Coord>({ x: NaN, y: NaN });
-  const containerDimensions = useContainerDimensions(containerRef);
-  const scalling = getCanvasScalling(containerDimensions, 0.9);
+  const canvasDimensions = useElementDimensions(canvasRef);
+  const scalling = getElementScalling(canvasDimensions);
 
   const onMouseDown: MouseEventHandler<HTMLCanvasElement> = (e) => {
     if (!isLeftMouseButtonDown(e)) return;
@@ -58,50 +57,34 @@ function App() {
 
   return (
     <>
-      <div
+      <canvas
+        height={CANVAS_INTERNAL_HEIGHT}
+        width={CANVAS_INTERNAL_WIDTH}
+        onMouseDown={onMouseDown}
+        onMouseMove={onMouseMove}
+        onMouseEnter={onMouseEnter}
+        ref={canvasRef}
         style={{
-          width: "100dvw",
-          height: "100dvh",
-          background: "mediumpurple",
-          display: "grid",
-          placeItems: "center",
+          background: "skyblue",
+          width: `90dvw`,
+          aspectRatio: "8 / 6",
+          display: "block",
         }}
-        ref={containerRef}
-      >
-        <canvas
-          height={CANVAS_INTERNAL_HEIGHT}
-          width={CANVAS_INTERNAL_WIDTH}
-          onMouseDown={onMouseDown}
-          onMouseMove={onMouseMove}
-          onMouseEnter={onMouseEnter}
-          ref={canvasRef}
-          style={{
-            background: "skyblue",
-            width: `${CANVAS_INTERNAL_WIDTH * scalling}px`,
-            height: `${CANVAS_INTERNAL_HEIGHT * scalling}px`,
-            display: "block",
-          }}
-        />
-      </div>
+      />
     </>
   );
 }
 
-function getCanvasScalling(
-  containerDimensions: Coord | undefined,
-  canvasContainerSizeRatio = 1
-) {
+function getElementScalling(containerDimensions: Coord | undefined) {
   if (!containerDimensions) return 1;
 
-  const xScalling =
-    (containerDimensions.x * canvasContainerSizeRatio) / CANVAS_INTERNAL_WIDTH;
-  const yScalling =
-    (containerDimensions.y * canvasContainerSizeRatio) / CANVAS_INTERNAL_HEIGHT;
+  const xScalling = containerDimensions.x / CANVAS_INTERNAL_WIDTH;
+  const yScalling = containerDimensions.y / CANVAS_INTERNAL_HEIGHT;
 
   return xScalling < yScalling ? xScalling : yScalling;
 }
 
-function useContainerDimensions(containerRef: RefObject<HTMLElement>) {
+function useElementDimensions(containerRef: RefObject<HTMLElement>) {
   const [dimensions, setDimensions] = useState<Coord>();
 
   useEffect(() => {
